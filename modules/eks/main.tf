@@ -96,7 +96,7 @@ provider "kubernetes" {
   token                  = data.aws_eks_cluster_auth.eks.token
 }
 
-# Map IAM users as cluster admins
+# Map IAM users and node role for cluster access
 resource "kubernetes_config_map" "aws_auth" {
   metadata {
     name      = "aws-auth"
@@ -111,9 +111,18 @@ resource "kubernetes_config_map" "aws_auth" {
         groups   = ["system:masters"]
       }
     ])
+
+    mapRoles = yamlencode([
+      {
+        rolearn  = aws_iam_role.eks_node_role.arn
+        username = "system:node:{{EC2PrivateDNSName}}"
+        groups   = ["system:bootstrappers", "system:nodes"]
+      }
+    ])
   }
 
   depends_on = [
-    aws_eks_cluster.eks_cluster
+    aws_eks_cluster.eks_cluster,
+    aws_iam_role_policy_attachment.node_AmazonEKSWorkerNodePolicy
   ]
 }
