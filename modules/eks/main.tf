@@ -60,6 +60,34 @@ resource "aws_iam_role_policy_attachment" "node_AmazonEKS_CNI_Policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
 }
 
+# Custom EBS CSI Driver Policy
+resource "aws_iam_policy" "ebs_csi_custom_policy" {
+  name        = "${var.cluster_name}-ebs-csi-policy"
+  description = "Custom EBS CSI Driver permissions"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = [
+          "ec2:CreateVolume",
+          "ec2:AttachVolume",
+          "ec2:DescribeVolumes",
+          "ec2:DeleteVolume",
+          "ec2:DetachVolume"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "node_ebs_csi_custom" {
+  role       = aws_iam_role.eks_node_role.name
+  policy_arn = aws_iam_policy.ebs_csi_custom_policy.arn
+}
+
 # Node Group
 resource "aws_eks_node_group" "eks_nodes" {
   cluster_name    = aws_eks_cluster.eks_cluster.name
@@ -125,4 +153,12 @@ resource "kubernetes_config_map" "aws_auth" {
     aws_eks_cluster.eks_cluster,
     aws_iam_role_policy_attachment.node_AmazonEKSWorkerNodePolicy
   ]
+}
+
+resource "null_resource" "install_ebs_csi_driver" {
+  depends_on = [aws_eks_node_group.eks_nodes]
+
+  provisioner "local-exec" {
+    command = "kubectl apply -k 'github.com/kubernetes-sigs/aws-ebs-csi-driver/deploy/kubernetes/overlays/stable/ecr/?ref=release-1.12'"
+  }
 }
