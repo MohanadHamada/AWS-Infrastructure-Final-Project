@@ -48,7 +48,7 @@ pipeline {
     }
 
     stage('Resolve ECR URL') {
-      agent { kubernetes { inheritFrom 'terraform' } }
+      agent { kubernetes { inheritFrom 'terraform' } } // reuse terraform pod (has aws)
       environment {
         AWS_ACCESS_KEY_ID     = credentials('aws-access-key-id')
         AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
