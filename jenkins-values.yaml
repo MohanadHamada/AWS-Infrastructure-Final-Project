@@ -5,12 +5,69 @@ controller:
     username: "admin"
     password: "1561"
   installPlugins:
-    - kubernetes:4203.v1dd44f5b_1cf9   # keep if valid, otherwise use latest
-    - workflow-aggregator:2.6          # stable release
-    - git:5.2.1                        # valid release
-    - docker-workflow:1.29             # stable release
-    - amazon-ecr:1.7                   # valid release
+    - kubernetes:4203.v1dd44f5b_1cf9
+    - workflow-aggregator:2.6
+    - git:5.2.1
+    - docker-workflow:1.29
+    - amazon-ecr:1.7
+    - configuration-as-code
   javaOpts: "-Djenkins.install.runSetupWizard=false"
+
+  JCasC:
+    configScripts:
+      kubernetes-clouds: |
+        jenkins:
+          clouds:
+            - kubernetes:
+                name: "eks-dev"
+                serverUrl: "https://DC90798CA0C90AB4B6710CDAC633BCBF.gr7.us-east-1.eks.amazonaws.com"
+                namespace: "jenkins"
+                jenkinsUrl: "http://jenkins:8080"
+                jenkinsTunnel: "jenkins-agent:50000"
+                containerCapStr: "10"
+                retentionTimeout: 5
+                connectTimeout: 10
+                readTimeout: 10
+                templates:
+                  - name: "git"
+                    label: "git"
+                    containers:
+                      - name: "git"
+                        image: "alpine/git:latest"
+                        ttyEnabled: true
+                        command: "cat"
+                  - name: "terraform"
+                    label: "terraform"
+                    containers:
+                      - name: "terraform"
+                        image: "public.ecr.aws/hashicorp/terraform:1.8"
+                        ttyEnabled: true
+                        command: "cat"
+                      - name: "aws"
+                        image: "amazon/aws-cli:2.17.7"
+                        ttyEnabled: true
+                        command: "cat"
+                  - name: "aws-cli"
+                    label: "aws-cli"
+                    containers:
+                      - name: "aws"
+                        image: "amazon/aws-cli:2.17.7"
+                        ttyEnabled: true
+                        command: "cat"
+                  - name: "kaniko"
+                    label: "kaniko"
+                    containers:
+                      - name: "kaniko"
+                        image: "gcr.io/kaniko-project/executor:latest"
+                        ttyEnabled: true
+                        command: "cat"
+                  - name: "kubectl"
+                    label: "kubectl"
+                    containers:
+                      - name: "kubectl"
+                        image: "bitnami/kubectl:latest"
+                        ttyEnabled: true
+                        command: "cat"
 
 persistence:
   enabled: true

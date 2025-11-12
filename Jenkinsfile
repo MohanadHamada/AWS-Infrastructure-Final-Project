@@ -10,41 +10,13 @@ pipeline {
     stage('Checkout infra and app') {
       parallel {
         stage('Checkout infra (your repo)') {
-          agent {
-            kubernetes {
-              label 'checkout-infra'
-              yaml """
-apiVersion: v1
-kind: Pod
-spec:
-  containers:
-  - name: git
-    image: alpine/git:latest
-    command: ['cat']
-    tty: true
-"""
-            }
-          }
+          agent { kubernetes { inheritFrom 'git' } }
           steps {
             checkout scm
           }
         }
         stage('Clone Node.js app') {
-          agent {
-            kubernetes {
-              label 'checkout-app'
-              yaml """
-apiVersion: v1
-kind: Pod
-spec:
-  containers:
-  - name: git
-    image: alpine/git:latest
-    command: ['cat']
-    tty: true
-"""
-            }
-          }
+          agent { kubernetes { inheritFrom 'git' } }
           steps {
             sh """
               rm -rf ${APP_DIR}
@@ -56,25 +28,7 @@ spec:
     }
 
     stage('Terraform plan & apply') {
-      agent {
-        kubernetes {
-          label 'tf'
-          yaml """
-apiVersion: v1
-kind: Pod
-spec:
-  containers:
-  - name: terraform
-    image: public.ecr.aws/hashicorp/terraform:1.8
-    command: ['cat']
-    tty: true
-  - name: aws
-    image: amazon/aws-cli:2.17.7
-    command: ['cat']
-    tty: true
-"""
-        }
-      }
+      agent { kubernetes { inheritFrom 'terraform' } }
       environment {
         AWS_ACCESS_KEY_ID     = credentials('aws-access-key-id')
         AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
@@ -96,21 +50,7 @@ spec:
     }
 
     stage('Resolve ECR URL') {
-      agent {
-        kubernetes {
-          label 'aws-cli'
-          yaml """
-apiVersion: v1
-kind: Pod
-spec:
-  containers:
-  - name: aws
-    image: amazon/aws-cli:2.17.7
-    command: ['cat']
-    tty: true
-"""
-        }
-      }
+      agent { kubernetes { inheritFrom 'aws-cli' } }
       environment {
         AWS_ACCESS_KEY_ID     = credentials('aws-access-key-id')
         AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
@@ -126,22 +66,7 @@ spec:
     }
 
     stage('Build & push image with Kaniko') {
-      agent {
-        kubernetes {
-          label 'kaniko'
-          yaml """
-apiVersion: v1
-kind: Pod
-spec:
-  serviceAccountName: default
-  containers:
-  - name: kaniko
-    image: gcr.io/kaniko-project/executor:latest
-    args: ["--version"]
-    tty: true
-"""
-        }
-      }
+      agent { kubernetes { inheritFrom 'kaniko' } }
       environment {
         AWS_ACCESS_KEY_ID     = credentials('aws-access-key-id')
         AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
@@ -159,21 +84,7 @@ spec:
     }
 
     stage('Deploy to EKS') {
-      agent {
-        kubernetes {
-          label 'kubectl'
-          yaml """
-apiVersion: v1
-kind: Pod
-spec:
-  containers:
-  - name: kubectl
-    image: bitnami/kubectl:latest
-    command: ['cat']
-    tty: true
-"""
-        }
-      }
+      agent { kubernetes { inheritFrom 'kubectl' } }
       environment {
         AWS_ACCESS_KEY_ID     = credentials('aws-access-key-id')
         AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
