@@ -28,3 +28,9 @@ module "eks" {
   max_size        = var.max_size
   eks_admin_users = var.eks_admin_users
 }
+
+# --- ECR Module ---
+module "ecr" {
+  source   = "./modules/ecr"
+  repo_name = "jenkins-nodejs-example"
+}
