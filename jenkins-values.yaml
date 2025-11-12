@@ -36,6 +36,7 @@ controller:
                         image: "alpine/git:latest"
                         ttyEnabled: true
                         command: "cat"
+
                   - name: "terraform"
                     label: "terraform"
                     containers:
@@ -47,6 +48,7 @@ controller:
                         image: "amazon/aws-cli:2.17.7"
                         ttyEnabled: true
                         command: "cat"
+
                   - name: "aws-cli"
                     label: "aws-cli"
                     containers:
@@ -54,6 +56,7 @@ controller:
                         image: "amazon/aws-cli:2.17.7"
                         ttyEnabled: true
                         command: "cat"
+
                   - name: "kaniko"
                     label: "kaniko"
                     containers:
@@ -61,6 +64,7 @@ controller:
                         image: "gcr.io/kaniko-project/executor:latest"
                         ttyEnabled: true
                         command: "cat"
+
                   - name: "kubectl"
                     label: "kubectl"
                     containers:
@@ -68,10 +72,13 @@ controller:
                         image: "bitnami/kubectl:latest"
                         ttyEnabled: true
                         command: "cat"
+                      - name: "aws"
+                        image: "amazon/aws-cli:2.17.7"
+                        ttyEnabled: true
+                        command: "cat"
 
 persistence:
   enabled: true
   storageClass: "gp2"
-  storageClassName: "gp2"
   accessMode: ReadWriteOnce
   size: 20Gi

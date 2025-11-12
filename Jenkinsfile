@@ -11,9 +11,7 @@ pipeline {
       parallel {
         stage('Checkout infra (your repo)') {
           agent { kubernetes { inheritFrom 'git' } }
-          steps {
-            checkout scm
-          }
+          steps { checkout scm }
         }
         stage('Clone Node.js app') {
           agent { kubernetes { inheritFrom 'git' } }
@@ -34,11 +32,9 @@ pipeline {
         AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
       }
       steps {
-        // Run AWS CLI inside the same pod
         container('aws') {
           sh 'aws sts get-caller-identity'
         }
-        // Run Terraform inside the same pod
         container('terraform') {
           dir("${TF_DIR}") {
             sh """
@@ -94,28 +90,21 @@ pipeline {
         AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
       }
       steps {
-        // You need AWS CLI here too. Either:
-        // (a) Add aws container to kubectl template in jenkins-values.yaml
-        // (b) Or run this stage in terraform pod instead.
-        sh """
-          aws eks --region $AWS_REGION update-kubeconfig --name aws-final-project-eks
-
-          # Replace image tag in deployment.yaml with current BUILD_NUMBER
-          sed -i "s|:latest|:${BUILD_NUMBER}|g" k8s/deployment.yaml
-
-          # Apply manifests
-          kubectl apply -f k8s/deployment.yaml
-          kubectl apply -f k8s/service.yaml
-        """
+        container('aws') {
+          sh "aws eks --region $AWS_REGION update-kubeconfig --name aws-final-project-eks"
+        }
+        container('kubectl') {
+          sh """
+            sed -i "s|:latest|:${BUILD_NUMBER}|g" k8s/deployment.yaml
+            kubectl apply -f k8s/deployment.yaml
+            kubectl apply -f k8s/service.yaml
+          """
+        }
       }
     }
   }
   post {
-    success {
-      echo "✅ Pipeline completed. Image pushed and deployed: ${env.ECR_URL}:${BUILD_NUMBER}"
-    }
-    failure {
-      echo "❌ Pipeline failed. Check Terraform, Kaniko, or Deploy stages."
-    }
+    success { echo "✅ Pipeline completed. Image pushed and deployed: ${env.ECR_URL}:${BUILD_NUMBER}" }
+    failure { echo "❌ Pipeline failed. Check Terraform, Kaniko, or Deploy stages." }
   }
 }
