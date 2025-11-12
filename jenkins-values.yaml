@@ -1,27 +1,20 @@
 controller:
+  serviceType: LoadBalancer
+  servicePort: 8080
   admin:
     username: "admin"
     password: "1561"
-  serviceType: LoadBalancer
-  servicePort: 8080
   installPlugins:
-    - kubernetes:1.35.0
-    - workflow-aggregator:2.6
-    - credentials-binding:1.27
-    - aws-credentials:1.29
-    - amazon-ecr:1.4
-    - docker-plugin:1.2.2
-    - git:4.16.0
-
-  resources:
-    requests:
-      cpu: 500m
-      memory: 1Gi
-    limits:
-      cpu: 1
-      memory: 2Gi
+    - kubernetes:4203.v1dd44f5b_1cf9   # keep if valid, otherwise use latest
+    - workflow-aggregator:2.6          # stable release
+    - git:5.2.1                        # valid release
+    - docker-workflow:1.29             # stable release
+    - amazon-ecr:1.7                   # valid release
+  javaOpts: "-Djenkins.install.runSetupWizard=false"
 
 persistence:
   enabled: true
-  storageClass: gp2
-  size: 8Gi
+  storageClass: "gp2"
+  storageClassName: "gp2"
+  accessMode: ReadWriteOnce
+  size: 20Gi
