@@ -157,13 +157,47 @@ spec:
         """
       }
     }
+
+    stage('Deploy to EKS') {
+      agent {
+        kubernetes {
+          label 'kubectl'
+          yaml """
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: kubectl
+    image: bitnami/kubectl:latest
+    command: ['cat']
+    tty: true
+"""
+        }
+      }
+      environment {
+        AWS_ACCESS_KEY_ID     = credentials('aws-access-key-id')
+        AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
+      }
+      steps {
+        sh """
+          aws eks --region $AWS_REGION update-kubeconfig --name aws-final-project-eks
+
+          # Replace image tag in deployment.yaml with current BUILD_NUMBER
+          sed -i "s|:latest|:${BUILD_NUMBER}|g" k8s/deployment.yaml
+
+          # Apply manifests
+          kubectl apply -f k8s/deployment.yaml
+          kubectl apply -f k8s/service.yaml
+        """
+      }
+    }
   }
   post {
     success {
-      echo "Image pushed to ${env.ECR_URL}:${BUILD_NUMBER}"
+      echo "✅ Pipeline completed. Image pushed and deployed: ${env.ECR_URL}:${BUILD_NUMBER}"
     }
     failure {
-      echo "Pipeline failed. Check Terraform and Kaniko stages."
+      echo "❌ Pipeline failed. Check Terraform, Kaniko, or Deploy stages."
     }
   }
 }
