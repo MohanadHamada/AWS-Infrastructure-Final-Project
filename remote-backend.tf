@@ -53,6 +53,6 @@ terraform {
     region         = "us-east-1"
     dynamodb_table = "terraform-infra-state-dynamodb-table"
     encrypt        = true
-    
+    profile        = "default"
   }
 }
