@@ -2,6 +2,9 @@ variable "project_name" {
   type    = string
   default = "aws-final-project"
 }
+variable "region" {
+  default = "us-east-1"
+}
 
 variable "vpc_cidr" {
   type    = string

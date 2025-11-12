@@ -30,6 +30,7 @@ pipeline {
       environment {
         AWS_ACCESS_KEY_ID     = credentials('aws-access-key-id')
         AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
+        AWS_DEFAULT_REGION    = "${AWS_REGION}"
       }
       steps {
         container('aws') {
@@ -48,10 +49,11 @@ pipeline {
     }
 
     stage('Resolve ECR URL') {
-      agent { kubernetes { inheritFrom 'terraform' } } // reuse terraform pod (has aws)
+      agent { kubernetes { inheritFrom 'terraform' } }
       environment {
         AWS_ACCESS_KEY_ID     = credentials('aws-access-key-id')
         AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
+        AWS_DEFAULT_REGION    = "${AWS_REGION}"
       }
       steps {
         container('aws') {
@@ -70,6 +72,7 @@ pipeline {
       environment {
         AWS_ACCESS_KEY_ID     = credentials('aws-access-key-id')
         AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
+        AWS_DEFAULT_REGION    = "${AWS_REGION}"
       }
       steps {
         sh """
@@ -88,6 +91,7 @@ pipeline {
       environment {
         AWS_ACCESS_KEY_ID     = credentials('aws-access-key-id')
         AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
+        AWS_DEFAULT_REGION    = "${AWS_REGION}"
       }
       steps {
         container('aws') {
