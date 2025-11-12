@@ -4,18 +4,27 @@ controller:
   admin:
     username: "admin"
     password: "1561"
+
   installPlugins:
     - kubernetes:4392.v19cea_fdb_5913
     - workflow-aggregator:608.v67378e9d3db_1
     - git:5.8.0
+    - git-client:6.4.0
     - docker-workflow:634.vedc7242b_eda_7
     - amazon-ecr:1.161.v1a_1e8df852d6
     - configuration-as-code:2006.v001a_2ca_6b_574
+    - credentials:1447.v4cb_b_539b_5321
+    - credentials-binding:702.vfe613e537e88
+    - plain-credentials:199.v9f8e1f741799
+
   javaOpts: "-Djenkins.install.runSetupWizard=false"
 
   JCasC:
     configScripts:
-      kubernetes-clouds: |
+      jenkins-config: |
+        jenkins:
+          clouds: []   # explicitly clear any default clouds
+      eks-cloud: |
         jenkins:
           clouds:
             - kubernetes:
@@ -25,9 +34,6 @@ controller:
                 jenkinsUrl: "http://jenkins:8080"
                 jenkinsTunnel: "jenkins-agent:50000"
                 containerCapStr: "10"
-                retentionTimeout: 5
-                connectTimeout: 10
-                readTimeout: 10
                 templates:
                   - name: "git"
                     label: "git"
@@ -44,10 +50,30 @@ controller:
                         image: "public.ecr.aws/hashicorp/terraform:1.8"
                         ttyEnabled: true
                         command: "cat"
+                        envVars:
+                          - envVar:
+                              key: "AWS_ACCESS_KEY_ID"
+                              value: "${AWS_ACCESS_KEY_ID}"
+                          - envVar:
+                              key: "AWS_SECRET_ACCESS_KEY"
+                              value: "${AWS_SECRET_ACCESS_KEY}"
+                          - envVar:
+                              key: "AWS_DEFAULT_REGION"
+                              value: "us-east-1"
                       - name: "aws"
                         image: "amazon/aws-cli:2.17.7"
                         ttyEnabled: true
                         command: "cat"
+                        envVars:
+                          - envVar:
+                              key: "AWS_ACCESS_KEY_ID"
+                              value: "${AWS_ACCESS_KEY_ID}"
+                          - envVar:
+                              key: "AWS_SECRET_ACCESS_KEY"
+                              value: "${AWS_SECRET_ACCESS_KEY}"
+                          - envVar:
+                              key: "AWS_DEFAULT_REGION"
+                              value: "us-east-1"
 
                   - name: "aws-cli"
                     label: "aws-cli"
@@ -56,6 +82,16 @@ controller:
                         image: "amazon/aws-cli:2.17.7"
                         ttyEnabled: true
                         command: "cat"
+                        envVars:
+                          - envVar:
+                              key: "AWS_ACCESS_KEY_ID"
+                              value: "${AWS_ACCESS_KEY_ID}"
+                          - envVar:
+                              key: "AWS_SECRET_ACCESS_KEY"
+                              value: "${AWS_SECRET_ACCESS_KEY}"
+                          - envVar:
+                              key: "AWS_DEFAULT_REGION"
+                              value: "us-east-1"
 
                   - name: "kaniko"
                     label: "kaniko"
@@ -76,6 +112,16 @@ controller:
                         image: "amazon/aws-cli:2.17.7"
                         ttyEnabled: true
                         command: "cat"
+                        envVars:
+                          - envVar:
+                              key: "AWS_ACCESS_KEY_ID"
+                              value: "${AWS_ACCESS_KEY_ID}"
+                          - envVar:
+                              key: "AWS_SECRET_ACCESS_KEY"
+                              value: "${AWS_SECRET_ACCESS_KEY}"
+                          - envVar:
+                              key: "AWS_DEFAULT_REGION"
+                              value: "us-east-1"
 
 persistence:
   enabled: true

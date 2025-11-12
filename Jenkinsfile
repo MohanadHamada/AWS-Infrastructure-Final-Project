@@ -3,7 +3,7 @@ pipeline {
   environment {
     AWS_REGION = 'us-east-1'
     ECR_REPO   = 'jenkins-nodejs-example'
-    TF_DIR     = 'AWS-Final-Project'
+    TF_DIR     = '.'
     APP_DIR    = 'app'
   }
   stages {
