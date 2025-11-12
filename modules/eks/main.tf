@@ -159,6 +159,6 @@ resource "null_resource" "install_ebs_csi_driver" {
   depends_on = [aws_eks_node_group.eks_nodes]
 
   provisioner "local-exec" {
-    command = "kubectl apply -k 'github.com/kubernetes-sigs/aws-ebs-csi-driver/deploy/kubernetes/overlays/stable/ecr/?ref=release-1.12'"
+    command = "aws eks --region us-east-1 update-kubeconfig --name aws-final-project-eks && kubectl apply -k 'github.com/kubernetes-sigs/aws-ebs-csi-driver/deploy/kubernetes/overlays/stable/ecr/?ref=release-1.12'"
   }
 }
