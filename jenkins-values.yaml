@@ -5,12 +5,12 @@ controller:
     username: "admin"
     password: "1561"
   installPlugins:
-    - kubernetes:4203.v1dd44f5b_1cf9
-    - workflow-aggregator:2.6
-    - git:5.2.1
-    - docker-workflow:1.29
-    - amazon-ecr:1.7
-    - configuration-as-code
+    - kubernetes:4392.v19cea_fdb_5913
+    - workflow-aggregator:608.v67378e9d3db_1
+    - git:5.8.0
+    - docker-workflow:634.vedc7242b_eda_7
+    - amazon-ecr:1.161.v1a_1e8df852d6
+    - configuration-as-code:2006.v001a_2ca_6b_574
   javaOpts: "-Djenkins.install.runSetupWizard=false"
 
   JCasC:

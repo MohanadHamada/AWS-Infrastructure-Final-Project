@@ -34,9 +34,11 @@ pipeline {
         AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
       }
       steps {
+        // Run AWS CLI inside the same pod
         container('aws') {
           sh 'aws sts get-caller-identity'
         }
+        // Run Terraform inside the same pod
         container('terraform') {
           dir("${TF_DIR}") {
             sh """
@@ -50,17 +52,19 @@ pipeline {
     }
 
     stage('Resolve ECR URL') {
-      agent { kubernetes { inheritFrom 'aws-cli' } }
+      agent { kubernetes { inheritFrom 'terraform' } }
       environment {
         AWS_ACCESS_KEY_ID     = credentials('aws-access-key-id')
         AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
       }
       steps {
-        script {
-          def acct = sh(returnStdout: true, script: "aws sts get-caller-identity --query Account --output text").trim()
-          env.ACCOUNT_ID = acct
-          env.ECR_URL = "${acct}.dkr.ecr.${env.AWS_REGION}.amazonaws.com/${env.ECR_REPO}"
-          echo "Resolved ECR: ${env.ECR_URL}"
+        container('aws') {
+          script {
+            def acct = sh(returnStdout: true, script: "aws sts get-caller-identity --query Account --output text").trim()
+            env.ACCOUNT_ID = acct
+            env.ECR_URL = "${acct}.dkr.ecr.${env.AWS_REGION}.amazonaws.com/${env.ECR_REPO}"
+            echo "Resolved ECR: ${env.ECR_URL}"
+          }
         }
       }
     }
@@ -90,6 +94,9 @@ pipeline {
         AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
       }
       steps {
+        // You need AWS CLI here too. Either:
+        // (a) Add aws container to kubectl template in jenkins-values.yaml
+        // (b) Or run this stage in terraform pod instead.
         sh """
           aws eks --region $AWS_REGION update-kubeconfig --name aws-final-project-eks
 
