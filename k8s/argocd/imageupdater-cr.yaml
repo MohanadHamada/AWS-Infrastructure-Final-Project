@@ -1,0 +1,30 @@
+apiVersion: argocd-image-updater.argoproj.io/v1alpha1
+kind: ImageUpdater
+metadata:
+  name: nodejs-app-updater
+  namespace: argocd
+spec:
+  # Target namespace where ArgoCD Applications are located
+  namespace: argocd
+  
+  # Global update settings
+  commonUpdateSettings:
+    updateStrategy: alphabetical
+    ignoreTags:
+      - "latest"
+      - "v*"
+  
+  # Write-back configuration - ECR only (no Git commits)
+  writeBackConfig:
+    method: argocd
+  
+  # Application references
+  applicationRefs:
+    - namePattern: "nodejs-app"
+      images:
+        - alias: nodejs-app
+          imageName: 287043460305.dkr.ecr.us-east-1.amazonaws.com/nodejs-app:latest
+          manifestTargets:
+            helm:
+              name: image.repository
+              tag: image.tag

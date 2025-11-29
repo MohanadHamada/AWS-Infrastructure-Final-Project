@@ -1,0 +1,179 @@
+pipeline {
+    agent {
+        kubernetes {
+            yaml '''
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    jenkins: agent
+spec:
+  serviceAccountName: jenkins
+  containers:
+  - name: kaniko
+    image: gcr.io/kaniko-project/executor:debug
+    command:
+    - sleep
+    args:
+    - "9999999"
+    volumeMounts:
+    - name: kaniko-secret
+      mountPath: /kaniko/.docker
+  - name: aws-cli
+    image: amazon/aws-cli:latest
+    command:
+    - cat
+    tty: true
+    volumeMounts:
+    - name: kaniko-secret
+      mountPath: /kaniko/.docker
+  volumes:
+  - name: kaniko-secret
+    emptyDir: {}
+'''
+        }
+    }
+    
+    environment {
+        AWS_REGION = 'us-east-1'
+        IMAGE_TAG = "build-${BUILD_NUMBER}"
+    }
+    
+    stages {
+        stage('Setup Environment') {
+            steps {
+                container('aws-cli') {
+                    script {
+                        echo "=== Getting AWS Account Information ==="
+                        
+                        // Get AWS Account ID dynamically
+                        env.AWS_ACCOUNT_ID = sh(script: 'aws sts get-caller-identity --query Account --output text', returnStdout: true).trim()
+                        env.ECR_REPOSITORY_URL = "${env.AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/nodejs-app"
+                        
+                        echo "AWS Account ID: ${env.AWS_ACCOUNT_ID}"
+                        echo "ECR Repository: ${env.ECR_REPOSITORY_URL}"
+                        echo "Image Tag: ${IMAGE_TAG}"
+                    }
+                }
+            }
+        }
+        
+        stage('Checkout') {
+            steps {
+                script {
+                    echo "=== Checking Out Code ==="
+                    echo "Branch: ${env.GIT_BRANCH}"
+                    echo "Commit: ${env.GIT_COMMIT}"
+                }
+                // Code is automatically checked out by Jenkins
+                // when using "Pipeline script from SCM"
+            }
+        }
+        
+        stage('Verify Files') {
+            steps {
+                script {
+                    echo "=== Verifying Project Files ==="
+                    sh '''
+                        echo "Workspace: ${WORKSPACE}"
+                        echo ""
+                        echo "Files in workspace:"
+                        ls -la
+                        echo ""
+                        echo "nodejs-app directory:"
+                        ls -la nodejs-app/
+                        echo ""
+                        echo "Source files:"
+                        ls -la nodejs-app/src/
+                        echo ""
+                        echo "Dockerfile exists:"
+                        cat nodejs-app/Dockerfile
+                    '''
+                }
+            }
+        }
+        
+        stage('Setup ECR Authentication') {
+            steps {
+                container('aws-cli') {
+                    script {
+                        echo "=== Setting up ECR Authentication ==="
+                        
+                        sh '''
+                            mkdir -p /kaniko/.docker
+                            
+                            # Dynamically construct ECR registry URL
+                            ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+                            
+                            aws ecr get-login-password --region ${AWS_REGION} > /tmp/ecr-password
+                            
+                            cat > /kaniko/.docker/config.json <<EOF
+{
+  "auths": {
+    "${ECR_REGISTRY}": {
+      "auth": "$(echo -n AWS:$(cat /tmp/ecr-password) | base64 -w 0)"
+    }
+  }
+}
+EOF
+                            
+                            rm /tmp/ecr-password
+                        '''
+                        
+                        echo "✅ ECR authentication configured for ${env.ECR_REPOSITORY_URL}"
+                    }
+                }
+            }
+        }
+        
+        stage('Build and Push Image') {
+            steps {
+                container('kaniko') {
+                    script {
+                        echo "=== Building and Pushing Image with Kaniko ==="
+                        
+                        sh """
+                            /kaniko/executor \
+                              --context=${WORKSPACE}/nodejs-app \
+                              --dockerfile=${WORKSPACE}/nodejs-app/Dockerfile \
+                              --destination=${ECR_REPOSITORY_URL}:${IMAGE_TAG} \
+                              --destination=${ECR_REPOSITORY_URL}:latest \
+                              --cache=true \
+                              --cache-ttl=24h \
+                              --verbosity=info
+                        """
+                        
+                        echo "✅ Images built and pushed to ECR:"
+                        echo "   - ${ECR_REPOSITORY_URL}:${IMAGE_TAG}"
+                        echo "   - ${ECR_REPOSITORY_URL}:latest"
+                    }
+                }
+            }
+        }
+        
+        stage('Summary') {
+            steps {
+                script {
+                    echo "=== Build Complete ==="
+                    echo "✅ Pipeline executed successfully"
+                    echo ""
+                    echo "📦 Image Details:"
+                    echo "   Repository: ${ECR_REPOSITORY_URL}"
+                    echo "   Tag: ${IMAGE_TAG}"
+                    echo "   Latest: ${ECR_REPOSITORY_URL}:latest"
+                    echo ""
+                    echo "🚀 Image is ready for deployment"
+                }
+            }
+        }
+    }
+    
+    post {
+        success {
+            echo '✅ Pipeline completed successfully!'
+        }
+        failure {
+            echo '❌ Pipeline failed!'
+        }
+    }
+}
